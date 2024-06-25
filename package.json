@@ -3,13 +3,15 @@
   "version": "1.0.0",
   "main": "./src/index.ts",
   "scripts": {
-    "build": "cd src && webpack"
+    "build": "cd src && webpack",
+    "test": "cd test && ts-node test.ts"
   },
   "author": "",
   "license": "ISC",
   "description": "",
   "devDependencies": {
     "ts-loader": "^9.5.1",
+    "ts-node": "^10.9.2",
     "typescript": "^5.5.2",
     "webpack": "^5.92.1",
     "webpack-cli": "^5.1.4"
