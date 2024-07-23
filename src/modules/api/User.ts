@@ -1,40 +1,64 @@
 class User {
-  private csrfToken:string = "";
+  private csrfToken: string = "";
+  private sessionId: string = "";
 
   private async getCsrfToken(): Promise<void> {
     const response: Response = await fetch(
-      "https://scratch.mit.edu/csrf_token",
+      "https://scratch.mit.edu/csrf_token"
     );
-    const setCookieString:string = response.headers.getSetCookie()[1]
+    const setCookieString: string = response.headers.getSetCookie()[1];
 
     // cuts out and finds the csrf cookie
 
-    for(let i = "scratchcsrftoken=".length; i < setCookieString.length; i++) {
+    for (let i = "scratchcsrftoken=".length; i < setCookieString.length; i++) {
       if (setCookieString[i] == ";") {
-        break
+        break;
       } else {
-        this.csrfToken += setCookieString[i]
+        this.csrfToken += setCookieString[i];
       }
     }
   }
 
-  private async authorisedFetch(url:string, info:RequestInit): Promise<Response> {
-    const modifiedInfo:any = Object.assign({
-      Referer:"https://scratch.mit.edu/",
-      Cookie: "scratchcsrftoken=" + this.csrfToken + ";",
-      "X-Csrftoken": this.csrfToken,
-      "X-Requested-With": "XMLHttpRequest"
-    }, info);
+  private async authorisedFetch(
+    url: string,
+    info: RequestInit,
+    errorMessage: string
+  ): Promise<Response> {
+    const modifiedInfo: any = Object.assign(
+      {
+        headers: {
+          Referer: "https://scratch.mit.edu/",
+          Cookie: `scratchsessionsid="${this.sessionId}";scratchcsrftoken="${this.csrfToken}";`,
+          "X-Csrftoken": this.csrfToken,
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      },
+      info
+    );
 
-    return await fetch(url, modifiedInfo);
+    const response: Response = await fetch(url, modifiedInfo);
+
+    console.log(modifiedInfo);
+
+    if (!response.ok) {
+      throw new Error(`${errorMessage}:\n ${response.statusText}\n\n`);
+    }
+
+    return response;
+  }
+
+  private async extractSessionId(setCookieString: string) {
+    this.sessionId = setCookieString.substring(
+      'scratchsessionsid="'.length,
+      'scratchsessionsid="'.length + 364
+    );
+    // 364 is the exact length of session id
   }
 
   public async login(username: string, password: string): Promise<void> {
-    await this.getCsrfToken()
+    await this.getCsrfToken(); // fetches csrf token cookie
 
-    const response: Response = await this.authorisedFetch()
-  
-    const response: Response = await fetch(
+    const loginResponse: Response = await this.authorisedFetch(
       "https://scratch.mit.edu/accounts/login/",
       {
         method: "POST",
@@ -43,16 +67,11 @@ class User {
           password,
           useMessages: true,
         }),
-        headers:{
-          "Referer":"https://scratch.mit.edu/",
-          "Cookie":"scratchcsrftoken=" + this.csrfToken + ";",
-          "X-Csrftoken": this.csrfToken,
-          "X-Requested-With":"XMLHttpRequest"
-        }
-      }
+      },
+      "There was a problem logging in"
     );
 
-    console.log(await response.text());
+    await this.extractSessionId(loginResponse.headers.getSetCookie()[0]);
   }
 
   public async createProject(): Promise<void> {}
@@ -67,6 +86,19 @@ class User {
 
   public async getLovesCount(): Promise<number> {
     return 2;
+  }
+
+  public async saveProject(projectId: number, projectJson: any) {
+    const response: Response = await this.authorisedFetch(
+      "https://projects.scratch.mit.edu/" + projectId,
+      {
+        method: "PUT",
+        body: JSON.stringify(projectJson),
+      },
+      "There was a problem saving the project"
+    );
+
+    console.log(await response.headers);
   }
 }
 
