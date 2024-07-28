@@ -1,4 +1,6 @@
 import { User } from "../src/api";
+import Project from "../src/modules/project-builder/Project";
+import Sprite from "../src/modules/project-builder/Sprite";
 
 async function main() {
   const user: User = new User();
@@ -233,4 +235,14 @@ async function main() {
   });
 }
 
-main();
+class Cat extends Sprite {
+  constructor() {
+    super("Cat");
+  }
+
+  public hello() {
+    console.log("hello");
+  }
+}
+
+new Project([new Cat()]);

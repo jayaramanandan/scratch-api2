@@ -1,134 +1,36 @@
-import Position from "./interfaces/Position";
-import BlockJson from "./interfaces/BlockJson";
-import Parameter from "./interfaces/Parameter";
 import InputsJson from "./interfaces/InputsJson";
-import BlockData from "./interfaces/BlockData";
-import ExtendedBlockData from "./interfaces/ExtendedBlockData";
+import Parameter from "./interfaces/Parameter";
 
-class Sprite {
-  private blocks: { [blockId: string]: BlockJson } = {};
-  private blockCount: number = 0;
+class Block {
+  private opcode: string;
+  private next: string = "";
+  private parent: string | null;
+  private inputs: InputsJson;
+  private dropdowns: {};
+  private topLevel: boolean;
+  private blockId: number = 0;
+  private newBlocksAdded: number = 0;
 
   constructor(
-    name: string,
-    currentCostume: number = 0,
-    volume: number = 0,
-    layerOrder: number = 0,
-    visible: boolean = true,
-    startingPosition: Position = { x: 0, y: 0, direction: 90 },
-    startingSize: number = 0,
-    startingVolume: number = 0,
-    draggable: boolean = false,
-    rotationStyle: string = "all around"
-  ) {}
+    opcode: string,
+    next: string | null,
+    parent: string | null,
+    parameters: Parameter[],
+    dropdowns: {},
+    topLevel: boolean,
+    blockId: number
+  ) {
+    this.opcode = opcode;
+    this.blockId = blockId;
+    this.parent = parent;
+  }
 
   private blockIdString(displacement: number): string {
-    return `block${this.blockCount + displacement}`;
-  }
-
-  private addBlock({
-    opcode,
-    next,
-    parent,
-    parameters,
-    dropdowns,
-    topLevel,
-    type,
-  }: BlockData): void {
-    const blockId: string = type
-      ? parent + "-" + type[0].toUpperCase()
-      : this.blockIdString(0);
-
-    this.blocks[blockId] = {
-      opcode,
-      next: next || this.blockIdString(+1),
-      parent: parent || this.blockIdString(-1),
-      inputs: parameters ? this.parseParameters(parameters, blockId) : {},
-      fields: dropdowns ? this.parseDropdowns() : {},
-      topLevel: topLevel || false,
-      shadow: false,
-      x: 0,
-      y: 0,
-    };
-
-    if (!type) {
-      // if the block is not extended or a dropdown
-      this.blockCount++;
-    }
-  }
-
-  private parseParameters(
-    parameters: Parameter[],
-    blockId: string
-  ): InputsJson {
-    let inputs: InputsJson = {};
-    parameters.forEach(({ parameterName, value }: Parameter) => {
-      let typeInteger: number = 0;
-      let isExtendedBlock: boolean = false;
-
-      if (typeof value == "number") {
-        typeInteger = 4;
-      } else if (typeof value == "string") {
-        typeInteger = 10;
-      } else if (Object.keys(value).includes("angle")) {
-        typeInteger = 8;
-      } else {
-        // is extended block
-        isExtendedBlock = true;
-        this.addBlock({
-          // @ts-ignore
-          opcode: value.opcode,
-          next: null,
-          parent: blockId,
-          // @ts-ignore
-          parameters: value.parameters,
-          // @ts-ignore
-          dropdowns: value.dropdowns,
-          topLevel: false,
-          type: "extended",
-        });
-      }
-
-      const inputArray: [number, string] = [typeInteger, String(value)];
-
-      inputs[parameterName.toUpperCase()] = [
-        value ? 3 : 1,
-        isExtendedBlock ? blockId + "-E" : inputArray,
-        inputArray,
-      ];
-    });
-
-    return inputs;
-  }
-
-  private parseDropdowns(): {
-    [fieldName: string]: any[];
-  } {
-    return {};
-  }
-
-  public whenFlagClicked(callback: Function): void {
-    this.addBlock({
-      opcode: "event_whenflagclicked",
-    });
-
-    callback();
-  }
-
-  public move(steps: number | ExtendedBlockData): void {
-    this.addBlock({
-      opcode: "motion_movesteps",
-      parameters: [
-        {
-          parameterName: "steps",
-          value: steps,
-        },
-      ],
-    });
+    return `block${this.blockId + displacement}`;
   }
 }
 
-export default Sprite;
+export default Block;
 
 const blocks = {
   "B=Rb8zk$tiEvG0=bUy}g": {
@@ -408,7 +310,7 @@ const blocks = {
     parent: "{(h`NkWmq0yxY?.vj}B?",
     inputs: {
       MESSAGE: [1, [10, "Hello!"]],
-      SECS: [3, "R558Q+C$O#5h-M}sxU7N", [4, "2"]],
+      SECS: [1, [4, "2"]],
     },
     fields: {},
     shadow: false,
@@ -498,7 +400,7 @@ const blocks = {
     parent: "q~]08/Q4[:r1e%sJdb@(",
     inputs: {
       ";o,2Z2b:]bkE~I:6S)Zo": [1, [10, "5"]],
-      "9_?tV^.]@_cVE(,gu{($": [2, "4Euja,Nu=FQP5fvGo~{#"],
+      "9_?tV^.]@_cVE(,gu{($": [2, "R558Q+C$O#5h-M}sxU7N"],
     },
     fields: {},
     shadow: false,
@@ -514,35 +416,13 @@ const blocks = {
   "R558Q+C$O#5h-M}sxU7N": {
     opcode: "operator_gt",
     next: null,
-    parent: ";(j0@g}Md2#JL2nQNFbK",
+    parent: "-D}!ehdR~7;h8fzm7)%y",
     inputs: {
       OPERAND1: [1, [10, "2"]],
       OPERAND2: [1, [10, "50"]],
     },
     fields: {},
     shadow: false,
-    topLevel: false,
-  },
-  "4Euja,Nu=FQP5fvGo~{#": {
-    opcode: "sensing_touchingobject",
-    next: null,
-    parent: "-D}!ehdR~7;h8fzm7)%y",
-    inputs: {
-      TOUCHINGOBJECTMENU: [1, "mS-;c[H5qFWNirE+I;Oq"],
-    },
-    fields: {},
-    shadow: false,
-    topLevel: false,
-  },
-  "mS-;c[H5qFWNirE+I;Oq": {
-    opcode: "sensing_touchingobjectmenu",
-    next: null,
-    parent: "4Euja,Nu=FQP5fvGo~{#",
-    inputs: {},
-    fields: {
-      TOUCHINGOBJECTMENU: ["_mouse_", null],
-    },
-    shadow: true,
     topLevel: false,
   },
 };
