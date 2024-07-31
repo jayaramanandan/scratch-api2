@@ -241,8 +241,7 @@ class Cat extends Sprite {
     this.goTo(this.test(this.test("hello")));
     this.endConstructor();
 
-    //console.log(this.blocks["block1"].inputs);
-    console.log(this.blocks);
+    console.log(this.getJson().blocks);
   }
 
   public hello() {
