@@ -1,10 +1,17 @@
+import { readFileSync } from "fs";
+import path from "path";
+
 import { User } from "../src/api";
 import Project from "../src/project-builder/Project";
 import Sprite from "../src/project-builder/Sprite";
 
+const { username, password }: any = JSON.parse(
+  readFileSync(path.join(__dirname, "./details.json"), "utf8")
+);
+
 async function main() {
   const user: User = new User();
-  await user.login("AbeIsGood", `console.log("1")`);
+  await user.login(username, password);
 
   await user.saveProject(868816629, {
     targets: [
@@ -252,6 +259,7 @@ class Cat extends Sprite {
 new Project([new Cat()]);
 
 import startServer from "../src/renderer";
+import path from "path";
 startServer({
   targets: [
     {
