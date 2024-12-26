@@ -22,15 +22,22 @@ class User {
   private async authorisedFetch(
     url: string,
     info: RequestInit,
-    errorMessage: string
+    errorMessage: string,
+    login?: boolean
   ): Promise<Response> {
     const modifiedInfo: any = Object.assign(
       {
         headers: {
           Referer: "https://scratch.mit.edu/",
-          Cookie: `scratchsessionsid="${this.sessionId}";scratchcsrftoken="${this.csrfToken}";`,
+          Origin: "https://scratch.mit.edu",
+          Cookie:
+            (login ? "" : `scratchsessionsid="${this.sessionId}";`) +
+            `scratchcsrftoken="${this.csrfToken}";`,
           "X-Csrftoken": this.csrfToken,
           "X-Requested-With": "XMLHttpRequest",
+          "Content-Type": "application/json",
+          TE: "trailers",
+          credentials: "include",
         },
       },
       info
@@ -38,10 +45,12 @@ class User {
 
     const response: Response = await fetch(url, modifiedInfo);
 
-    console.log(modifiedInfo);
+    console.log(response.statusText);
 
     if (!response.ok) {
-      throw new Error(`${errorMessage}:\n ${response.statusText}\n\n`);
+      throw new Error(`
+        Request: ${url}
+        ${errorMessage}:\n ${response.statusText}\n\n`);
     }
 
     return response;
@@ -68,7 +77,8 @@ class User {
           useMessages: true,
         }),
       },
-      "There was a problem logging in"
+      "There was a problem logging in",
+      true
     );
 
     await this.extractSessionId(loginResponse.headers.getSetCookie()[0]);
@@ -97,8 +107,6 @@ class User {
       },
       "There was a problem saving the project"
     );
-
-    console.log(await response.headers);
   }
 }
 
